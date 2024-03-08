@@ -17,7 +17,7 @@ import ua.expandapis.util.MapperUtil;
 @Service
 @Slf4j
 @Transactional
-public class JwtUserDetailsService implements ExtendedUserDetailsService {
+public class JwtUserDetailsManager implements UserDetailsManager {
     @PersistenceContext
     private EntityManager entityManager;
     private UserRepository userRepository;
@@ -25,7 +25,7 @@ public class JwtUserDetailsService implements ExtendedUserDetailsService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    public JwtUserDetailsService(UserRepository userRepository, MapperUtil mapperUtil, PasswordEncoder passwordEncoder) {
+    public JwtUserDetailsManager(UserRepository userRepository, MapperUtil mapperUtil, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.mapperUtil = mapperUtil;
         this.passwordEncoder = passwordEncoder;

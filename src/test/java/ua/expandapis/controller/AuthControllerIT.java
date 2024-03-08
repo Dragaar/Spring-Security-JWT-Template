@@ -15,12 +15,11 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.WebApplicationContext;
 import ua.expandapis.dto.UserRegistrationDTO;
 import ua.expandapis.model.entity.User;
 import ua.expandapis.model.repository.UserRepository;
-import ua.expandapis.model.service.user.JwtUserDetailsService;
+import ua.expandapis.model.service.user.JwtUserDetailsManager;
 import ua.expandapis.util.MapperUtil;
 
 import java.io.IOException;
@@ -54,7 +53,7 @@ public class AuthControllerIT {
     UserRepository userRepository;
 
     @Autowired
-    JwtUserDetailsService userService;
+    JwtUserDetailsManager userManager;
 
     @BeforeEach
     void setUp() {

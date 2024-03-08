@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import ua.expandapis.dto.UserRegistrationDTO;
 import ua.expandapis.dto.jwt.JwtRequest;
 import ua.expandapis.dto.jwt.JwtResponse;
-import ua.expandapis.model.service.user.ExtendedUserDetailsService;
+import ua.expandapis.model.service.user.UserDetailsManager;
 import ua.expandapis.util.JwtTokenUtil;
 
 import static ua.expandapis.controller.MappingsConstants.*;
@@ -24,14 +24,14 @@ import static ua.expandapis.controller.MappingsConstants.*;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenUtil jwtTokenUtil;
-    private final ExtendedUserDetailsService userDetailsService;
+    private final UserDetailsManager userDetailsManager;
 
     @Autowired
     public AuthController(AuthenticationManager authenticationManager, JwtTokenUtil jwtTokenUtil,
-                          ExtendedUserDetailsService userDetailsService) {
+                          UserDetailsManager userDetailsManager) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenUtil = jwtTokenUtil;
-        this.userDetailsService = userDetailsService;
+        this.userDetailsManager = userDetailsManager;
     }
 
     @PostMapping(AUTHENTICATION_MAPPING)
@@ -40,7 +40,7 @@ public class AuthController {
         log.info("Auth User Controller");
         authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
 
-        final UserDetails userDetails = userDetailsService
+        final UserDetails userDetails = userDetailsManager
                 .loadUserByUsername(authenticationRequest.getUsername());
 
         final String token = jwtTokenUtil.generateToken(userDetails);
@@ -68,7 +68,7 @@ public class AuthController {
     }
 
         private UserRegistrationDTO register(UserRegistrationDTO userDto){
-                return userDetailsService.createUser(userDto);
+                return userDetailsManager.createUser(userDto);
         }
 
 
