@@ -35,9 +35,7 @@ public class JwtTokenUtilTest {
     public void testValidateToken(){
         String token = generateToken();
         String jwtToken = token.replace(TOKEN_PREFIX, "");
-        User user = User.builder().id(1L).username("user").password("54hWgew4236wW%").build();
-        JwtUserDetails userDetails = new JwtUserDetails(user);
 
-        Assertions.assertTrue(jwtTokenUtil.validateToken(jwtToken, userDetails));
+        Assertions.assertTrue(jwtTokenUtil.validateToken(jwtToken));
     }
 }
