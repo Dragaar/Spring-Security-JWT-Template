@@ -1,6 +1,5 @@
 package ua.expandapis.controller.filter;
 
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,13 +13,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ua.expandapis.util.JwtTokenUtil;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -41,34 +38,32 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         log.info("Do JWT Filter");
 
-        Optional<String> jwtToken = resolveToken(request);
+        Optional<String> jwtToken = jwtTokenUtil.getTokenFromHttpServletRequest(request, AUTHORIZATION_HEADER);
         if(jwtToken.isPresent()) {
             Optional<String> username = jwtTokenUtil.getUsernameFromToken(jwtToken.get());
-            configureSecurityIfTokenPresent(request, jwtToken, username);
+            configureSecurity(request, jwtToken, username);
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private Optional<String> resolveToken(HttpServletRequest request) {
-        String requestTokenHeader = request.getHeader(AUTHORIZATION_HEADER);
-        if (StringUtils.hasText(requestTokenHeader) && requestTokenHeader.startsWith("Bearer ")) {
-            return Optional.of( requestTokenHeader.substring(7) );
-        } else {
-            log.warn("Invalid JWT Format. JWT Token does not begin with Bearer word");
-        }
-        return Optional.empty();
-    }
-    private void configureSecurityIfTokenPresent(HttpServletRequest request, Optional<String> jwtToken,
-                                                 Optional<String> username) {
+    private void configureSecurity(HttpServletRequest request, Optional<String> jwtToken,
+                                   Optional<String> username) {
+
         //Validate the token
         if (username.isPresent() && jwtToken.isPresent()
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
 
+            Boolean isTokenValid = jwtTokenUtil.validateToken(jwtToken.get());
+            Optional<String> tokenSubject = jwtTokenUtil.getUsernameFromToken(jwtToken.get());
+
             UserDetails userDetails = userDetailsService.loadUserByUsername(username.get());
 
             // on valid token configure Spring Security to authentication
-            if (jwtTokenUtil.validateToken(jwtToken.get(), userDetails)) {
+            if (isTokenValid &&
+                tokenSubject.isPresent() &&
+                tokenSubject.get().equals(userDetails.getUsername())
+            ) {
 
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
                         new UsernamePasswordAuthenticationToken(
