@@ -86,12 +86,12 @@ public class JwtTokenUtil implements Serializable {
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(Keys.hmacShaKeyFor(
-                        Decoders.BASE64.decode(accessTokenSecretKey)
+                        accessTokenSecretKey.getBytes(StandardCharsets.UTF_8)
+                        //Decoders.BASE64.decode(accessTokenSecretKey)
                 ))
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        //return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
     }
 
     public Optional<String> getUsernameFromToken(String token) {

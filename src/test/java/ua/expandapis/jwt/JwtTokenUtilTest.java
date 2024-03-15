@@ -34,8 +34,6 @@ public class JwtTokenUtilTest {
     @Test
     public void testValidateToken(){
         String token = generateToken();
-        String jwtToken = token.replace(TOKEN_PREFIX, "");
-
-        Assertions.assertTrue(jwtTokenUtil.validateToken(jwtToken));
+        Assertions.assertTrue(jwtTokenUtil.validateToken(token));
     }
 }
