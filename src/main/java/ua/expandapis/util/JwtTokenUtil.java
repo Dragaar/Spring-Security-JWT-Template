@@ -2,17 +2,16 @@ package ua.expandapis.util;
 
 import io.jsonwebtoken.*;
 
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
-import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
@@ -23,35 +22,42 @@ import java.io.Serializable;
 public class JwtTokenUtil implements Serializable {
     private final Integer accessTokenValidTimeInMinutes;
     private final Integer refreshTokenValidTimeInMinutes;
-    private final String accessTokenSecretKey;
+    private final String tokenSecretKey;
+
+    public static final String ROLE = "role";
 
     @Autowired
     public JwtTokenUtil(@Value("${jwt.accessTokenValidTimeInMinutes}") Integer accessTokenValidTimeInMinutes,
                    @Value("${jwt.refreshTokenValidTimeInMinutes}") Integer refreshTokenValidTimeInMinutes,
-                   @Value("${jwt.tokenSecretKey}") String accessTokenSecretKey) {
+                   @Value("${jwt.tokenSecretKey}") String tokenSecretKey) {
         this.accessTokenValidTimeInMinutes = accessTokenValidTimeInMinutes;
         this.refreshTokenValidTimeInMinutes = refreshTokenValidTimeInMinutes;
-        this.accessTokenSecretKey = accessTokenSecretKey;
+        this.tokenSecretKey = tokenSecretKey;
+    }
+    public String createRefreshToken(final Authentication authentication) {
+        ClaimsBuilder claims = Jwts.claims().empty();
+        return generateToken(authentication, refreshTokenValidTimeInMinutes, claims);
     }
 
-    //claims of the token like Issuer, Expiration, Subject, and the ID
-    //HS512 algorithm is used here to sign the token
-    //JWT is compacted using compact() to a URL-safe string
-    public String generateToken(UserDetails userDetails) {
-        ClaimsBuilder claims = Jwts.claims().subject(userDetails.getUsername());
-        //claims.add(ROLE, Collections.singleton(role.name()));
+    public String createAccessToken(final Authentication authentication) {
+        ClaimsBuilder claims = Jwts.claims().subject(authentication.getName());
+        claims.add(ROLE, Collections.singleton(authentication.getAuthorities()));
+
+        return generateToken(authentication, accessTokenValidTimeInMinutes, claims);
+    }
+    private String generateToken(final Authentication authentication, Integer expirationTimeInMinutes, ClaimsBuilder claims) {
 
         Date now = new Date();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(now);
-        calendar.add(Calendar.MINUTE, accessTokenValidTimeInMinutes);
+        calendar.add(Calendar.MINUTE, expirationTimeInMinutes);
 
         return Jwts.builder()
                 .claims(claims.build())
                 .issuedAt(now)
                 .expiration(calendar.getTime())
                 .signWith(Keys.hmacShaKeyFor(
-                                accessTokenSecretKey.getBytes(StandardCharsets.UTF_8)),
+                                tokenSecretKey.getBytes(StandardCharsets.UTF_8)),
                         Jwts.SIG.HS512)
                 .compact();
     }
@@ -86,7 +92,7 @@ public class JwtTokenUtil implements Serializable {
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(Keys.hmacShaKeyFor(
-                        accessTokenSecretKey.getBytes(StandardCharsets.UTF_8)
+                        tokenSecretKey.getBytes(StandardCharsets.UTF_8)
                         //Decoders.BASE64.decode(accessTokenSecretKey)
                 ))
                 .build()
@@ -102,6 +108,17 @@ public class JwtTokenUtil implements Serializable {
         } else
             return Optional.empty();
     }
+
+    //TODO change to actual GrantedAuthority type, after refactor User entity
+    public Optional<List<GrantedAuthority>> getUserAuthorities(String token){
+        if(validateToken(token)) {
+            return Optional.of(
+                    getClaimFromToken(token, claims -> claims.get(ROLE, List.class))
+            );
+        } else
+            return Optional.empty();
+    }
+
 
     /**
      * Method that get token from {@link HttpServletRequest}.
