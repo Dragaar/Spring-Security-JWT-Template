@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import ua.expandapis.dto.UserRegistrationDTO;
@@ -38,18 +39,18 @@ public class AuthController {
     public ResponseEntity<?> createAuthenticationToken(@RequestBody @Valid JwtRequest authenticationRequest)
             throws Exception {
         log.info("Auth User Controller");
-        authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+                authenticationRequest.getUsername(), authenticationRequest.getPassword());
 
-        final UserDetails userDetails = userDetailsManager
-                .loadUserByUsername(authenticationRequest.getUsername());
-
-        final String token = jwtTokenUtil.generateToken(userDetails);
+        final String token = jwtTokenUtil.createAccessToken(
+                authenticate(auth)
+        );
 
         return ResponseEntity.ok(new JwtResponse(token));
     }
-        private void authenticate(String username, String password) throws Exception {
+        private Authentication authenticate(Authentication auth) throws Exception {
             try {
-                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+                return authenticationManager.authenticate(auth);
             } catch (DisabledException e) {
                 //custom exception handling
                 log.warn("Disabled user try to access");
